@@ -12,42 +12,9 @@
 .bottom{display:none}
 @media(max-width:900px){.sidebar{width:190px}.main{margin-left:190px;padding:20px}.grid{grid-template-columns:repeat(2,1fr)}.charts2,.charts3,.calendar-layout{grid-template-columns:1fr}}
 @media(max-width:650px){.sidebar{display:none}.main{margin:0;padding:16px 14px 85px}.top h1{font-size:22px}.grid{gap:10px}.card{padding:14px;border-radius:15px}.value{font-size:22px}.charts2,.charts3{gap:10px}.chart-card{height:285px}.chart-card canvas{height:225px!important}.daily-summary{grid-template-columns:1fr 1fr 1fr}.bottom{position:fixed;display:flex;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:20}.bottom button{flex:1;background:transparent;color:#667085;padding:7px 3px;font-size:11px}.bottom button.active{color:var(--blue);font-weight:800}.bottom .ico{font-size:18px;display:block}.item{padding:11px}.item small{font-size:11px}}
-
-.login-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#eef4ff,#f7f9fc);z-index:100;display:flex;align-items:center;justify-content:center;padding:18px}
-.login-box{width:min(410px,100%);background:#fff;border-radius:22px;padding:28px;box-shadow:0 15px 45px #17203318}
-.login-logo{text-align:center;font-size:29px;font-weight:900;margin-bottom:5px}
-.login-sub{text-align:center;color:#718096;font-size:13px;margin-bottom:22px}
-.login-tabs{display:grid;grid-template-columns:1fr 1fr;background:#f1f4f8;border-radius:12px;padding:4px;margin-bottom:18px}
-.login-tabs button{border:0;background:transparent;border-radius:9px;padding:10px;font-weight:800;color:#667085;cursor:pointer}
-.login-tabs button.active{background:#fff;color:#2563eb;box-shadow:0 2px 7px #17203312}
-.login-msg{font-size:12px;color:#ef4444;min-height:18px;margin-top:7px}
-.login-note{font-size:11px;color:#98a2b3;line-height:1.6;margin-top:16px}
-.account-pill{display:flex;align-items:center;gap:8px;font-size:12px;color:#667085}
-.account-pill b{color:#172033}.logout{border:0;background:#fff0f0;color:#ef4444;border-radius:9px;padding:7px 10px;font-weight:800;cursor:pointer}
 </style>
 </head>
 <body>
-
-<div id="loginOverlay" class="login-overlay">
-  <div class="login-box">
-    <div class="login-logo">🚤 競艇収支管理</div>
-    <div class="login-sub">IDごとに収支データを分けて管理します</div>
-    <div class="login-tabs">
-      <button id="loginTab" class="active" type="button" onclick="switchAuth('login')">ログイン</button>
-      <button id="registerTab" type="button" onclick="switchAuth('register')">新規登録</button>
-    </div>
-    <form onsubmit="authSubmit(event)">
-      <div class="form" style="max-width:none">
-        <label>ID<input id="authId" type="text" autocomplete="username" required placeholder="ユーザーID"></label>
-        <label>パスワード<input id="authPw" type="password" autocomplete="current-password" required placeholder="パスワード"></label>
-        <div id="authPw2Wrap" style="display:none"><label>パスワード（確認）<input id="authPw2" type="password" autocomplete="new-password" placeholder="もう一度入力"></label></div>
-        <button id="authBtn" class="btn primary" type="submit">ログイン</button>
-      </div>
-      <div id="authMsg" class="login-msg"></div>
-    </form>
-    <div class="login-note">この版はGitHub Pages上で動く簡易ログインです。IDごとの収支データはこの端末・このブラウザ内に分けて保存されます。</div>
-  </div>
-</div>
 <div class="app">
 <aside class="sidebar">
   <div class="brand"><span>🚤</span>競艇収支管理</div>
@@ -61,7 +28,7 @@
 
 <main class="main">
 <section id="dashboard" class="page">
-  <div class="top"><div><h1>📈 ダッシュボード</h1><p id="dashDate"></p></div><div class="account-pill"><span>👤 <b id="accountName"></b></span><button class="logout" onclick="logout()">ログアウト</button></div></div>
+  <div class="top"><div><h1>📈 ダッシュボード</h1><p id="dashDate"></p></div><button class="btn primary" onclick="go('input')">＋ 収支を記録</button></div>
   <div class="grid">
     <div class="card"><div class="label">今日の収支</div><div id="dayProfit" class="value">¥0</div><div id="dayRate" class="sub">回収率 0.0%</div></div>
     <div class="card"><div class="label">今週の収支</div><div id="weekProfit" class="value">¥0</div><div id="weekRate" class="sub">回収率 0.0%</div></div>
@@ -138,16 +105,8 @@
 </div>
 
 <script>
-const USERS_KEY="boatRaceUsersV1";
-const SESSION_KEY="boatRaceCurrentUserV1";
-let currentUser=localStorage.getItem(SESSION_KEY)||"";
-let entries=[];
-let authMode="login";
-function userDataKey(id){return "boatRaceEntriesV1_user_"+id;}
-function getUsers(){return JSON.parse(localStorage.getItem(USERS_KEY)||"{}");}
-function saveUsers(users){localStorage.setItem(USERS_KEY,JSON.stringify(users));}
-function loadUserEntries(){entries=JSON.parse(localStorage.getItem(userDataKey(currentUser))||"[]");}
-function saveUserEntries(){localStorage.setItem(userDataKey(currentUser),JSON.stringify(entries));}
+const KEY="boatRaceEntriesV1";
+let entries=JSON.parse(localStorage.getItem(KEY)||"[]");
 let charts={};
 let selectedDate=todayISO();
 let calendarDate=new Date();
@@ -194,68 +153,11 @@ function renderDaily(){
 function renderHistory(){
  const box=document.getElementById("allHistory");let a=[...entries].sort((x,z)=>z.id-x.id);box.innerHTML=a.length?a.map(e=>{let p=e.payout-e.bet;return `<div class="item"><div><b>${esc(e.place||"競艇場未入力")} ${e.race?esc(e.race)+"R":""}</b><small>${e.date}　投資 ${yen(e.bet)} → 払戻 ${yen(e.payout)}${e.memo?"　"+esc(e.memo):""}</small></div><div class="item-right"><b class="${p>0?"profit":p<0?"loss":""}">${p>=0?"+":""}${yen(p)}</b><br><button class="btn danger" style="padding:5px 8px;margin-top:5px" onclick="removeEntry(${e.id})">削除</button></div></div>`}).join(""):'<div class="empty">まだ記録がありません</div>'
 }
-function saveEntry(ev){ev.preventDefault();entries.push({id:Date.now(),date:date.value,place:place.value.trim(),race:race.value,bet:+bet.value,payout:+payout.value,memo:memo.value.trim()});entries.sort((a,b)=>b.id-a.id);saveUserEntries();ev.target.reset();date.value=todayISO();refreshAll();go("dashboard")}
-function removeEntry(id){if(confirm("この記録を削除しますか？")){entries=entries.filter(e=>e.id!==id);saveUserEntries();refreshAll()}}
+function saveEntry(ev){ev.preventDefault();entries.push({id:Date.now(),date:date.value,place:place.value.trim(),race:race.value,bet:+bet.value,payout:+payout.value,memo:memo.value.trim()});entries.sort((a,b)=>b.id-a.id);localStorage.setItem(KEY,JSON.stringify(entries));ev.target.reset();date.value=todayISO();refreshAll();go("dashboard")}
+function removeEntry(id){if(confirm("この記録を削除しますか？")){entries=entries.filter(e=>e.id!==id);localStorage.setItem(KEY,JSON.stringify(entries));refreshAll()}}
 function refreshAll(){refreshDashboard();renderCalendar();renderDaily();renderHistory()}
 function go(page){document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x.id===page));document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===page));history.replaceState(null,"","#"+page);if(page==="daily"){renderCalendar();renderDaily()}}
-
-function switchAuth(mode){
-  authMode=mode;
-  document.getElementById("loginTab").classList.toggle("active",mode==="login");
-  document.getElementById("registerTab").classList.toggle("active",mode==="register");
-  document.getElementById("authPw2Wrap").style.display=mode==="register"?"block":"none";
-  document.getElementById("authBtn").textContent=mode==="register"?"アカウントを作成":"ログイン";
-  document.getElementById("authMsg").textContent="";
-}
-function authSubmit(ev){
-  ev.preventDefault();
-  const id=document.getElementById("authId").value.trim();
-  const pw=document.getElementById("authPw").value;
-  const msg=document.getElementById("authMsg");
-  if(!/^[A-Za-z0-9_-]{3,30}$/.test(id)){msg.textContent="IDは英数字・_・-で3〜30文字にしてください";return;}
-  const users=getUsers();
-  if(authMode==="register"){
-    const pw2=document.getElementById("authPw2").value;
-    if(users[id]){msg.textContent="そのIDはすでに登録されています";return;}
-    if(pw.length<4){msg.textContent="パスワードは4文字以上にしてください";return;}
-    if(pw!==pw2){msg.textContent="パスワードが一致しません";return;}
-    users[id]={password:pw,createdAt:Date.now()};
-    saveUsers(users);
-  }else{
-    if(!users[id]||users[id].password!==pw){msg.textContent="IDまたはパスワードが違います";return;}
-  }
-  currentUser=id;
-  localStorage.setItem(SESSION_KEY,id);
-  loadUserEntries();
-  document.getElementById("loginOverlay").style.display="none";
-  const account=document.getElementById("accountName"); if(account) account.textContent=currentUser;
-  refreshAll();
-  go("dashboard");
-}
-function logout(){
-  currentUser=""; entries=[]; localStorage.removeItem(SESSION_KEY);
-  document.getElementById("loginOverlay").style.display="flex";
-  document.getElementById("authId").value="";
-  document.getElementById("authPw").value="";
-  document.getElementById("authPw2").value="";
-  document.getElementById("authMsg").textContent="";
-  switchAuth("login");
-}
-
-function init(){
- date.value=todayISO();
- if(currentUser){
-   const users=getUsers();
-   if(users[currentUser]){
-     loadUserEntries();
-     document.getElementById("loginOverlay").style.display="none";
-     const account=document.getElementById("accountName"); if(account) account.textContent=currentUser;
-   }else{currentUser="";localStorage.removeItem(SESSION_KEY)}
- }
- let p=location.hash.slice(1)||"dashboard";
- go(["dashboard","daily","history","input"].includes(p)?p:"dashboard");
- if(currentUser)refreshAll();
-}
+function init(){date.value=todayISO();let p=location.hash.slice(1)||"dashboard";go(["dashboard","daily","history","input"].includes(p)?p:"dashboard");refreshAll()}
 init();
 </script>
 </body>

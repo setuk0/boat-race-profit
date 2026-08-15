@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>競艇収支管理</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--bg:#f4f6fa;--card:#fff;--text:#172033;--muted:#718096;--line:#e6ebf2;--blue:#2563eb;--blue2:#eaf1ff;--green:#10b981;--red:#ef4444}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}
+.app{min-height:100vh; position: relative;}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:235px;background:#fff;border-right:1px solid var(--line);padding:22px 13px;z-index:10}.brand{font-size:22px;font-weight:800;padding:0 10px 22px}.brand span{font-size:25px;margin-right:7px}.nav{display:grid;gap:6px}.nav button{border:0;background:transparent;text-align:left;padding:13px 12px;border-radius:12px;font-size:14px;font-weight:700;color:#344054;cursor:pointer}.nav button.active{background:#eef3ff;color:var(--blue)}.nav button span{display:inline-block;width:25px}
+.main{margin-left:235px;padding:25px 28px 50px;max-width:1500px}.page{display:none}.page.active{display:block}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}.top h1{margin:0;font-size:25px}.top p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:var(--card);border-radius:17px;padding:17px;box-shadow:0 4px 18px #1720330b}.label{font-size:12px;color:var(--muted)}.value{font-size:27px;font-weight:850;margin-top:7px}.profit{color:var(--green)}.loss{color:var(--red)}.sub{font-size:12px;color:var(--muted);margin-top:4px}
+.section-title{font-size:17px;margin:25px 0 12px}.charts2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.charts3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}.chart-card{height:310px}.chart-card canvas{width:100%!important;height:245px!important}.chart-title{font-weight:800;font-size:14px;margin-bottom:6px}
+.calendar-layout{display:grid;grid-template-columns:1fr 1.25fr;gap:15px}.calendar-card{padding:18px}.cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.cal-head button{border:0;background:var(--blue2);color:var(--blue);border-radius:10px;width:36px;height:36px;font-size:20px;cursor:pointer}.cal-title{font-weight:800}.weekdays,.days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.weekdays div{text-align:center;font-size:11px;color:var(--muted);padding:5px}.days button{border:0;background:transparent;border-radius:10px;height:42px;cursor:pointer;font-size:13px}.days button:hover{background:#f0f4fa}.days button.selected{background:var(--blue);color:white;font-weight:800}.days button.hasdata{font-weight:800;position:relative}.days button.hasdata:after{content:"";position:absolute;bottom:5px;left:50%;width:4px;height:4px;background:var(--green);border-radius:50%;transform:translateX(-50%)}.days button.selected.hasdata:after{background:#fff}
+.daily-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}.mini{background:#f8fafc;border-radius:12px;padding:11px}.mini .label{font-size:11px}.mini .v{font-weight:800;margin-top:4px}
+.history{display:grid;gap:9px}.item{background:#fff;border-radius:14px;padding:13px;display:flex;justify-content:space-between;align-items:center;gap:12px}.item small{display:block;color:var(--muted);margin-top:4px}.item-right{text-align:right}
+.btn{border:0;border-radius:12px;padding:12px 15px;font-weight:800;cursor:pointer}.primary{background:var(--blue);color:#fff}.secondary{background:var(--blue2);color:var(--blue)}.danger{background:#fff0f0;color:var(--red)}.form{max-width:620px;display:grid;gap:12px}.form label{font-size:12px;color:var(--muted);font-weight:700}.form input,.form select{width:100%;padding:13px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:16px}.form-actions{display:flex;gap:8px}
+.modal{display:none;position:fixed;inset:0;background:#0008;z-index:50;align-items:flex-end;padding:15px}.modal.show{display:flex}.modal.center{align-items:center;}.sheet{background:#fff;width:100%;max-width:650px;margin:auto;border-radius:20px;padding:20px;max-height:92vh;overflow:auto}.empty{padding:35px;text-align:center;color:var(--muted)}
+.bottom{display:none}
+
+/* 追加：ユーザーウィジェットとログイン画面 */
+#userWidget { position: absolute; top: 25px; right: 28px; display: flex; align-items: center; gap: 8px; background: #fff; padding: 8px 12px; border-radius: 20px; box-shadow: 0 4px 18px #1720330b; cursor: pointer; z-index: 5; font-size: 14px; font-weight: bold; border: 1px solid var(--line); }
+#userWidget:hover { background: #f8fafc; }
+#loginOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
+
+@media(max-width:900px){.sidebar{width:190px}.main{margin-left:190px;padding:20px}.grid{grid-template-columns:repeat(2,1fr)}.charts2,.charts3,.calendar-layout{grid-template-columns:1fr}}
+@media(max-width:650px){.sidebar{display:none}.main{margin:0;padding:16px 14px 85px}.top h1{font-size:22px; max-width: 65%;}.grid{gap:10px}.card{padding:14px;border-radius:15px}.value{font-size:22px}.charts2,.charts3{gap:10px}.chart-card{height:285px}.chart-card canvas{height:225px!important}.daily-summary{grid-template-columns:1fr 1fr 1fr}.bottom{position:fixed;display:flex;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:20}.bottom button{flex:1;background:transparent;color:#667085;padding:7px 3px;font-size:11px}.bottom button.active{color:var(--blue);font-weight:800}.bottom .ico{font-size:18px;display:block}.item{padding:11px}.item small{font-size:11px}
+#userWidget { top: 12px; right: 14px; padding: 6px 10px; font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ログイン画面 -->
+<div id="loginOverlay">
+  <div class="card" style="width: 100%; max-width: 400px; padding: 30px;">
+    <h2 style="text-align: center; margin-top: 0; font-size: 22px;">🚤 競艇収支管理</h2>
+    <p style="text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 20px;">ログインしてください</p>
+    <form class="form" onsubmit="handleLogin(event)">
+      <label>ログインID<input id="loginId" type="text" required></label>
+      <label>パスワード<input id="loginPw" type="password" required></label>
+      <button type="submit" class="btn primary" style="width: 100%; margin-top: 15px;">ログイン</button>
+    </form>
+  </div>
+</div>
+
+<!-- ユーザー設定モーダル -->
+<div id="settingsModal" class="modal center">
+  <div class="sheet" style="max-width: 400px;">
+    <h3 style="margin-top:0;">👤 アカウント設定</h3>
+    <form class="form" onsubmit="saveSettings(event)">
+      <label>表示名<input id="setUserName" type="text" required></label>
+      <label>ログインID<input id="setUserId" type="text" required></label>
+      <label>パスワード<input id="setUserPw" type="password" required></label>
+      <div class="form-actions" style="margin-top: 10px;">
+        <button type="submit" class="btn primary" style="flex:1;">保存する</button>
+        <button type="button" class="btn secondary" style="flex:1;" onclick="closeSettings()">キャンセル</button>
+      </div>
+      <button type="button" class="btn danger" style="width: 100%; margin-top: 10px;" onclick="handleLogout()">ログアウト</button>
+    </form>
+  </div>
+</div>
+
+<div class="app">
+<!-- 右上ユーザーウィジェット -->
+<div id="userWidget" onclick="showSettings()">
+  <span style="font-size:18px;">👤</span>
+  <span id="displayUserName">ゲスト</span>
+</div>
+
+<aside class="sidebar">
+  <div class="brand"><span>🚤</span>競艇収支管理</div>
+  <div class="nav">
+    <button data-page="dashboard" onclick="go('dashboard')"><span>⌂</span>ダッシュボード</button>
+    <button data-page="daily" onclick="go('daily')"><span>▣</span>日別データ</button>
+    <button data-page="history" onclick="go('history')"><span>☷</span>収支一覧</button>
+    <button data-page="input" onclick="go('input')"><span>✎</span>データ入力</button>
+  </div>
+</aside>
+
+<main class="main">
+<section id="dashboard" class="page">
+  <div class="top"><div><h1>📈 ダッシュボード</h1><p id="dashDate"></p></div><button class="btn primary" onclick="go('input')" style="margin-right: 120px;">＋ 収支を記録</button></div>
+  <div class="grid">
+    <div class="card"><div class="label">今日の収支</div><div id="dayProfit" class="value">¥0</div><div id="dayRate" class="sub">回収率 0.0%</div></div>
+    <div class="card"><div class="label">今週の収支</div><div id="weekProfit" class="value">¥0</div><div id="weekRate" class="sub">回収率 0.0%</div></div>
+    <div class="card"><div class="label">今月の収支</div><div id="monthProfit" class="value">¥0</div><div id="monthRate" class="sub">回収率 0.0%</div></div>
+    <div class="card"><div class="label">今年の収支</div><div id="yearProfit" class="value">¥0</div><div id="yearRate" class="sub">回収率 0.0%</div></div>
+  </div>
+
+  <h2 class="section-title">収支の推移</h2>
+  <div class="charts2">
+    <div class="card chart-card"><div class="chart-title">年間収支の推移</div><canvas id="yearChart"></canvas></div>
+    <div class="card chart-card"><div class="chart-title">月別収支の推移（今年）</div><canvas id="monthChart"></canvas></div>
+  </div>
+  <div class="charts3" style="margin-top:14px">
+    <div class="card chart-card"><div class="chart-title">週別収支の推移（今月）</div><canvas id="weekChart"></canvas></div>
+    <div class="card chart-card"><div class="chart-title">曜日別収支の推移</div><canvas id="weekdayChart"></canvas></div>
+    <div class="card chart-card"><div class="chart-title">累計収支の推移</div><canvas id="cumChart"></canvas></div>
+  </div>
+  <h2 class="section-title">収支・回収率</h2>
+  <div class="charts2">
+    <div class="card chart-card"><div class="chart-title">日別収支の推移（直近30日）</div><canvas id="recentChart"></canvas></div>
+    <div class="card chart-card"><div class="chart-title">回収率の推移（直近30日）</div><canvas id="rateChart"></canvas></div>
+  </div>
+</section>
+
+<section id="daily" class="page">
+  <div class="top"><div><h1>📅 日別データ</h1><p>日付を選択すると、その日の収支を確認できます。</p></div></div>
+  <div class="calendar-layout">
+    <div class="card calendar-card">
+      <div class="cal-head"><button onclick="moveMonth(-1)">‹</button><div id="calTitle" class="cal-title"></div><button onclick="moveMonth(1)">›</button></div>
+      <div class="weekdays"><div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div></div>
+      <div id="days" class="days"></div>
+    </div>
+    <div class="card">
+      <div class="chart-title" id="selectedTitle">選択日のデータ</div>
+      <div class="daily-summary">
+        <div class="mini"><div class="label">掛け金</div><div id="selBet" class="v">¥0</div></div>
+        <div class="mini"><div class="label">払い戻し</div><div id="selPayout" class="v">¥0</div></div>
+        <div class="mini"><div class="label">収支</div><div id="selProfit" class="v">¥0</div></div>
+      </div>
+      <div style="height:300px"><canvas id="dailyChart"></canvas></div>
+    </div>
+  </div>
+  <h2 class="section-title">選択日のレース記録</h2>
+  <div id="dailyHistory" class="history"></div>
+</section>
+
+<section id="history" class="page">
+  <div class="top"><div><h1>☷ 収支一覧</h1><p>登録した収支を新しい順に表示します。</p></div></div>
+  <div id="allHistory" class="history"></div>
+</section>
+
+<section id="input" class="page">
+  <div class="top"><div><h1>✎ データ入力</h1><p>掛け金・払い戻しは10円単位で入力できます。</p></div></div>
+  <div class="card">
+    <form class="form" onsubmit="saveEntry(event)">
+      <label>日付<input id="date" type="date" required></label>
+      <label>競艇場<input id="place" type="text" placeholder="例：戸田"></label>
+      <label>レース番号<input id="race" type="number" min="1" max="12" placeholder="10"></label>
+      <label>掛け金（円）<input id="bet" type="number" min="0" step="10" required placeholder="1230"></label>
+      <label>払い戻し（円）<input id="payout" type="number" min="0" step="10" required placeholder="5670"></label>
+      <label>メモ<input id="memo" type="text" placeholder="買い目など"></label>
+      <div class="form-actions"><button type="submit" class="btn primary">保存する</button><button type="button" class="btn secondary" onclick="go('dashboard')">戻る</button></div>
+    </form>
+  </div>
+</section>
+</main>
+
+<nav class="bottom">
+  <button data-page="dashboard" onclick="go('dashboard')"><span class="ico">⌂</span>ホーム</button>
+  <button data-page="daily" onclick="go('daily')"><span class="ico">▣</span>日別</button>
+  <button data-page="history" onclick="go('history')"><span class="ico">☷</span>履歴</button>
+  <button data-page="input" onclick="go('input')"><span class="ico">＋</span>入力</button>
+</nav>
+</div>
+
+<script>
+// --- 認証・ユーザー管理 ---
+const USER_KEY = "boatRaceUser";
+let user = JSON.parse(localStorage.getItem(USER_KEY)) || { id: "admin", pw: "password", name: "ゲスト" };
+let isLoggedIn = sessionStorage.getItem("boatRaceLoggedIn") === "true";
+
+function checkAuth() {
+  if (isLoggedIn) {
+    document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("displayUserName").textContent = user.name;
+    init(); // ログイン成功後にアプリを初期化
+  } else {
+    document.getElementById("loginOverlay").style.display = "flex";
+  }
+}
+
+function handleLogin(e) {
+  e.preventDefault();
+  const inputId = document.getElementById("loginId").value;
+  const inputPw = document.getElementById("loginPw").value;
+  
+  if (inputId === user.id && inputPw === user.pw) {
+    sessionStorage.setItem("boatRaceLoggedIn", "true");
+    isLoggedIn = true;
+    checkAuth();
+  } else {
+    alert("IDまたはパスワードが間違っています。");
+  }
+}
+
+function handleLogout() {
+  sessionStorage.removeItem("boatRaceLoggedIn");
+  location.reload();
+}
+
+function showSettings() {
+  document.getElementById("setUserName").value = user.name;
+  document.getElementById("setUserId").value = user.id;
+  document.getElementById("setUserPw").value = user.pw;
+  document.getElementById("settingsModal").classList.add("show");
+}
+
+function closeSettings() {
+  document.getElementById("settingsModal").classList.remove("show");
+}
+
+function saveSettings(e) {
+  e.preventDefault();
+  user.name = document.getElementById("setUserName").value;
+  user.id = document.getElementById("setUserId").value;
+  user.pw = document.getElementById("setUserPw").value;
+  
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  document.getElementById("displayUserName").textContent = user.name;
+  closeSettings();
+  alert("アカウント情報を更新しました。");
+}
+
+
+// --- 収支管理アプリ メイン処理 ---
+const KEY="boatRaceEntriesV1";
+let entries=JSON.parse(localStorage.getItem(KEY)||"[]");
+let charts={};
+let selectedDate=todayISO();
+let calendarDate=new Date();
+calendarDate.setDate(1);
+
+const yen=n=>"¥"+Math.round(n).toLocaleString("ja-JP");
+function todayISO(){const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
+function iso(d){return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
+function parse(s){return new Date(s+"T00:00:00")}
+function startWeek(d){let x=new Date(d);let day=x.getDay();x.setDate(x.getDate()-(day===0?6:day-1));x.setHours(0,0,0,0);return x}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function sum(arr){return arr.reduce((a,e)=>a+e,0)}
+function stats(filter){let a=entries.filter(e=>filter(parse(e.date)));let bet=sum(a.map(e=>e.bet)),payout=sum(a.map(e=>e.payout));return{bet,payout,profit:payout-bet,rate:bet?payout/bet*100:0}}
+function setStat(id,s){let el=document.getElementById(id+"Profit"),r=document.getElementById(id+"Rate");el.textContent=(s.profit>=0?"+":"")+yen(s.profit);el.className="value "+(s.profit>0?"profit":s.profit<0?"loss":"");r.textContent="回収率 "+s.rate.toFixed(1)+"%"}
+function makeLine(id,labels,data,label="収支",opts={}){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),{type:"line",data:{labels,datasets:[{label,data,tension:.3,pointRadius:3,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>typeof v==="number"?(v>=1000||v<=-1000?"¥"+Math.round(v).toLocaleString():v):v}}},...opts}})}
+function refreshDashboard(){
+ let now=new Date(),ws=startWeek(now),ms=new Date(now.getFullYear(),now.getMonth(),1),ys=new Date(now.getFullYear(),0,1);
+ setStat("day",stats(d=>iso(d)===todayISO()));setStat("week",stats(d=>d>=ws));setStat("month",stats(d=>d>=ms));setStat("year",stats(d=>d>=ys));
+ document.getElementById("dashDate").textContent=now.toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"long"});
+ const y=now.getFullYear();
+ let months=[...Array(12)].map((_,i)=>{let st=new Date(y,i,1),en=new Date(y,i+1,1);return stats(d=>d>=st&&d<en).profit});
+ makeLine("yearChart",[...Array(12)].map((_,i)=>(i+1)+"月"),months);
+ makeLine("monthChart",[...Array(12)].map((_,i)=>(i+1)+"月"),months);
+ let m=now.getMonth(),mStart=new Date(y,m,1),next=new Date(y,m+1,1),weeks=[];
+ for(let w=0,d=new Date(mStart);d<next;w++){let a=new Date(d),b=new Date(d);b.setDate(b.getDate()+7);weeks.push(stats(x=>x>=a&&x<b).profit);d=b}
+ makeLine("weekChart",weeks.map((_,i)=>(i+1)+"週"),weeks);
+ let names=["日","月","火","水","木","金","土"],wd=names.map((_,i)=>stats(d=>d.getDay()===i).profit);makeLine("weekdayChart",names,wd);
+ let sorted=[...entries].sort((a,b)=>a.date.localeCompare(b.date)),cum=0,cl=[],cd=[];sorted.forEach(e=>{cum+=e.payout-e.bet;cl.push(e.date.slice(5));cd.push(cum)});makeLine("cumChart",cl,cd);
+ let recent=[],rl=[],rc=[],rates=[];for(let i=29;i>=0;i--){let d=new Date(now);d.setHours(0,0,0,0);d.setDate(d.getDate()-i);let st=iso(d),s=stats(x=>iso(x)===st);rl.push(st.slice(5));rc.push(s.profit);rates.push(s.rate)}makeLine("recentChart",rl,rc);makeLine("rateChart",rl,rates);
+}
+function renderCalendar(){
+ const y=calendarDate.getFullYear(),m=calendarDate.getMonth();document.getElementById("calTitle").textContent=`${y}年${m+1}月`;
+ const first=new Date(y,m,1),last=new Date(y,m+1,0),box=document.getElementById("days");box.innerHTML="";
+ for(let i=0;i<first.getDay();i++)box.appendChild(document.createElement("span"));
+ for(let day=1;day<=last.getDate();day++){let d=new Date(y,m,day),s=iso(d),b=document.createElement("button");b.textContent=day;if(s===selectedDate)b.classList.add("selected");if(entries.some(e=>e.date===s))b.classList.add("hasdata");b.onclick=()=>{selectedDate=s;renderCalendar();renderDaily()};box.appendChild(b)}
+}
+function moveMonth(n){calendarDate.setMonth(calendarDate.getMonth()+n);renderCalendar()}
+function renderDaily(){
+ let s=stats(d=>iso(d)===selectedDate),dt=parse(selectedDate);document.getElementById("selectedTitle").textContent=dt.toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric"})+" の収支";
+ document.getElementById("selBet").textContent=yen(s.bet);document.getElementById("selPayout").textContent=yen(s.payout);let pe=document.getElementById("selProfit");pe.textContent=(s.profit>=0?"+":"")+yen(s.profit);pe.className="v "+(s.profit>0?"profit":s.profit<0?"loss":"");
+ let a=entries.filter(e=>e.date===selectedDate).sort((x,z)=>(+x.race||99)-(+z.race||99));let labels=a.map(e=>e.race?e.race+"R":e.place||"記録"),data=a.map(e=>e.payout-e.bet);makeLine("dailyChart",labels,data,"レース収支");
+ const box=document.getElementById("dailyHistory");box.innerHTML=a.length?a.map(e=>{let p=e.payout-e.bet;return `<div class="item"><div><b>${esc(e.place||"競艇場未入力")} ${e.race?esc(e.race)+"R":""}</b><small>投資 ${yen(e.bet)} → 払戻 ${yen(e.payout)}${e.memo?"　"+esc(e.memo):""}</small></div><div class="item-right"><b class="${p>0?"profit":p<0?"loss":""}">${p>=0?"+":""}${yen(p)}</b></div></div>`}).join(""):'<div class="empty">この日の記録はありません</div>';
+}
+function renderHistory(){
+ const box=document.getElementById("allHistory");let a=[...entries].sort((x,z)=>z.id-x.id);box.innerHTML=a.length?a.map(e=>{let p=e.payout-e.bet;return `<div class="item"><div><b>${esc(e.place||"競艇場未入力")} ${e.race?esc(e.race)+"R":""}</b><small>${e.date}　投資 ${yen(e.bet)} → 払戻 ${yen(e.payout)}${e.memo?"　"+esc(e.memo):""}</small></div><div class="item-right"><b class="${p>0?"profit":p<0?"loss":""}">${p>=0?"+":""}${yen(p)}</b><br><button class="btn danger" style="padding:5px 8px;margin-top:5px" onclick="removeEntry(${e.id})">削除</button></div></div>`}).join(""):'<div class="empty">まだ記録がありません</div>'
+}
+function saveEntry(ev){ev.preventDefault();entries.push({id:Date.now(),date:date.value,place:place.value.trim(),race:race.value,bet:+bet.value,payout:+payout.value,memo:memo.value.trim()});entries.sort((a,b)=>b.id-a.id);localStorage.setItem(KEY,JSON.stringify(entries));ev.target.reset();date.value=todayISO();refreshAll();go("dashboard")}
+function removeEntry(id){if(confirm("この記録を削除しますか？")){entries=entries.filter(e=>e.id!==id);localStorage.setItem(KEY,JSON.stringify(entries));refreshAll()}}
+function refreshAll(){refreshDashboard();renderCalendar();renderDaily();renderHistory()}
+function go(page){document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x.id===page));document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===page));history.replaceState(null,"","#"+page);if(page==="daily"){renderCalendar();renderDaily()}}
+function init(){date.value=todayISO();let p=location.hash.slice(1)||"dashboard";go(["dashboard","daily","history","input"].includes(p)?p:"dashboard");refreshAll()}
+
+// アプリの起動（認証チェック）
+checkAuth();
+</script>
+</body>
+</html>
